@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary Brand Colors -->
+    <color name="primary_blue">#007BFF</color>
+    <color name="primary_purple">#6C5CE7</color>
+    <color name="primary_pink">#E84393</color>
+    <color name="primary_cyan">#00CEC9</color>
+
+    <!-- Glassmorphism -->
+    <color name="glass_background_light">#26FFFFFF</color> <!-- 15% White -->
+    <color name="glass_background_dark">#1AFFFFFF</color>  <!-- 10% White -->
+    <color name="glass_border_light">#4DFFFFFF</color>     <!-- 30% White -->
+    <color name="glass_border_dark">#0DFFFFFF</color>      <!-- 5% White -->
+    
+    <!-- Functional -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#CCFFFFFF</color>
+    <color name="text_tertiary">#80FFFFFF</color>
+    <color name="success">#00B894</color>
+    <color name="error">#FF7675</color>
+    <color name="warning">#FDCB6E</color>
+</resources>

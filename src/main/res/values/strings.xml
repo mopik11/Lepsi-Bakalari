@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Lepší Bakaláři</string>
+    <string name="app_title">Lepší Bakaláři</string>
+    <string name="hint_base_url">URL školy (např. https://bakalari.skola.cz)</string>
+    <string name="hint_username">Uživatelské jméno</string>
+    <string name="hint_password">Heslo</string>
+    <string name="button_login">Přihlásit se</string>
+    <string name="nav_timetable">Rozvrh</string>
+    <string name="nav_marks">Známky</string>
+    <string name="nav_komens">Komens</string>
+    <string name="nav_more">Více</string>
+    <string name="section_final_marks">Pololetní známky</string>
+    <string name="section_homeworks">Úkoly</string>
+    <string name="section_absence">Absence</string>
+    <string name="section_events">Události</string>
+    <string name="section_substitutions">Zastupování</string>
+    <string name="no_messages">Žádné zprávy</string>
+    <string name="no_homeworks">Žádné úkoly</string>
+    <string name="no_events">Žádné události</string>
+    <string name="no_substitutions">Žádné změny</string>
+    <string name="today">Dnes</string>
+    <string name="no_lessons">Žádné hodiny</string>
+    <string name="loading">Načítání…</string>
+    <string name="error_login">Chyba přihlášení</string>
+    <string name="logout">Odhlásit se</string>
+</resources>
