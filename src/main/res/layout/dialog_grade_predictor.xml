@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/glass_card">
+
+    <!-- Header -->
+    <TextView
+        android:id="@+id/textSubjectName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Matematika"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="4dp" />
+
+    <TextView
+        android:id="@+id/textCurrentAvg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Současný průměr: 1.00"
+        android:textColor="#DDFFFFFF"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Result Box (Centerpiece) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NOVÝ PRŮMĚR"
+            android:textColor="#99FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.1"
+            android:textAllCaps="true" />
+
+        <TextView
+            android:id="@+id/textPredictedAvg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1.00"
+            android:textColor="#FFFFFF"
+            android:textSize="64sp"
+            android:fontFamily="sans-serif-thin"
+            android:includeFontPadding="false"
+            android:shadowColor="#40000000"
+            android:shadowDx="0"
+            android:shadowDy="8"
+            android:shadowRadius="24" />
+            
+         <TextView
+            android:id="@+id/textDiff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="-- stejný --"
+            android:textColor="#80FFFFFF"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <!-- Hypothetical Marks List (Vertical) -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SIMULOVANÉ ZNÁMKY"
+        android:textColor="#66FFFFFF"
+        android:textSize="10sp"
+        android:letterSpacing="0.1"
+        android:layout_marginBottom="8dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/glass_card"
+        android:backgroundTint="#10FFFFFF"
+        android:padding="4dp"
+        android:fadeScrollbars="false">
+        
+        <LinearLayout
+            android:id="@+id/containerAddedMarks"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="4dp">
+            
+            <TextView
+                android:id="@+id/textNoMarks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Zatím žádné nové známky"
+                android:textColor="#66FFFFFF"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="24dp"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Inputs Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="bottom"
+        android:layout_marginBottom="32dp">
+
+        <!-- Grade Input -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="12dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Známka"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="4dp"/>
+                
+            <EditText
+                android:id="@+id/inputGrade"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/glass_circle"
+                android:backgroundTint="#15FFFFFF"
+                android:inputType="number"
+                android:gravity="center"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:hint="1-5"
+                android:textColorHint="#40FFFFFF" />
+        </LinearLayout>
+
+        <!-- Weight Input -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginEnd="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Váha"
+                android:textColor="#CCFFFFFF"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="4dp" />
+                
+            <EditText
+                android:id="@+id/inputWeight"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/glass_circle"
+                android:backgroundTint="#15FFFFFF"
+                android:inputType="number"
+                android:gravity="center"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:text="1" />
+        </LinearLayout>
+
+        <!-- Add Button (Refined) -->
+        <FrameLayout
+            android:id="@+id/btnAddMark"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/glass_circle"
+            android:backgroundTint="#25FFFFFF">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+"
+                android:textColor="#FFFFFF"
+                android:textSize="28sp"
+                android:layout_gravity="center"
+                android:includeFontPadding="false"
+                android:layout_marginBottom="2dp"/>
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Close Button -->
+    <TextView
+        android:id="@+id/btnClose"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/glass_card"
+        android:backgroundTint="#10FFFFFF"
+        android:text="Zavřít"
+        android:textColor="#FFFFFF"
+        android:gravity="center"
+        android:textSize="14sp"
+        android:letterSpacing="0.05"
+        android:textStyle="bold" />
+
+</LinearLayout>

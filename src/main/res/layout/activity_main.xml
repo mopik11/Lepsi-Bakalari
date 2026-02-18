@@ -32,143 +32,173 @@
             app:layout_constraintTop_toTopOf="parent">
 
             <!-- Rozvrh -->
-            <ScrollView
-                android:id="@+id/scrollTimetable"
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeTimetable"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:fillViewport="true"
-                android:clipToPadding="false"
-                android:paddingTop="120dp"
-                android:paddingBottom="140dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
-                <LinearLayout
-                    android:id="@+id/timetableContent"
+
+                <ScrollView
+                    android:id="@+id/scrollTimetable"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/textLoading"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/loading"
-                        android:textColor="@color/white"
-                        android:visibility="gone" />
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:clipToPadding="false"
+                    android:paddingTop="120dp"
+                    android:paddingBottom="160dp">
                     <LinearLayout
-                        android:id="@+id/lessonsContainer"
+                        android:id="@+id/timetableContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-                </LinearLayout>
-            </ScrollView>
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/textLoading"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/loading"
+                            android:textColor="@color/white"
+                            android:visibility="gone" />
+                        <LinearLayout
+                            android:id="@+id/lessonsContainer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </ScrollView>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
             <!-- Známky -->
-            <ScrollView
-                android:id="@+id/scrollMarks"
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeMarks"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:fillViewport="true"
                 android:visibility="gone"
-                android:clipToPadding="false"
-                android:paddingTop="120dp"
-                android:paddingBottom="140dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
-                <LinearLayout
-                    android:id="@+id/marksRoot"
+
+                <ScrollView
+                    android:id="@+id/scrollMarks"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <include
-                        android:id="@+id/marksToggle"
-                        layout="@layout/layout_marks_toggle" />
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:clipToPadding="false"
+                    android:paddingTop="120dp"
+                    android:paddingBottom="160dp">
                     <LinearLayout
-                        android:id="@+id/marksContent"
+                        android:id="@+id/marksRoot"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical" />
-                </LinearLayout>
-            </ScrollView>
+                        android:orientation="vertical">
+                        <include
+                            android:id="@+id/marksToggle"
+                            layout="@layout/layout_marks_toggle" />
+                        <LinearLayout
+                            android:id="@+id/marksContent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </ScrollView>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
             <!-- Komens -->
-            <ScrollView
-                android:id="@+id/scrollKomens"
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeKomens"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:fillViewport="true"
                 android:visibility="gone"
-                android:clipToPadding="false"
-                android:paddingTop="120dp"
-                android:paddingBottom="140dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
-                <LinearLayout
-                    android:id="@+id/komensContent"
+
+                <ScrollView
+                    android:id="@+id/scrollKomens"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-                    <TextView
-                        android:id="@+id/textKomensLoading"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/loading"
-                        android:textColor="@color/white"
-                        android:visibility="gone" />
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:clipToPadding="false"
+                    android:paddingTop="120dp"
+                    android:paddingBottom="160dp">
                     <LinearLayout
-                        android:id="@+id/komensList"
+                        android:id="@+id/komensContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/textKomensLoading"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/loading"
+                            android:textColor="@color/white"
+                            android:visibility="gone" />
+                        <LinearLayout
+                            android:id="@+id/komensList"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical" />
+                    </LinearLayout>
+                </ScrollView>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+            <!-- Úkoly -->
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeHomeworks"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <ScrollView
+                    android:id="@+id/scrollHomeworks"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:clipToPadding="false"
+                    android:paddingTop="120dp"
+                    android:paddingBottom="160dp">
+                    <LinearLayout
+                        android:id="@+id/homeworksContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical" />
-                </LinearLayout>
-            </ScrollView>
-
-            <!-- Úkoly -->
-            <ScrollView
-                android:id="@+id/scrollHomeworks"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:fillViewport="true"
-                android:visibility="gone"
-                android:clipToPadding="false"
-                android:paddingTop="120dp"
-                android:paddingBottom="140dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent">
-                <LinearLayout
-                    android:id="@+id/homeworksContent"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+                </ScrollView>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
             <!-- Více -->
-            <ScrollView
-                android:id="@+id/scrollMore"
+            <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+                android:id="@+id/swipeMore"
                 android:layout_width="0dp"
                 android:layout_height="0dp"
-                android:fillViewport="true"
                 android:visibility="gone"
-                android:clipToPadding="false"
-                android:paddingTop="120dp"
-                android:paddingBottom="140dp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
-                <LinearLayout
-                    android:id="@+id/moreContent"
+
+                <ScrollView
+                    android:id="@+id/scrollMore"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </ScrollView>
+                    android:layout_height="match_parent"
+                    android:fillViewport="true"
+                    android:clipToPadding="false"
+                    android:paddingTop="120dp"
+                    android:paddingBottom="160dp">
+                    <LinearLayout
+                        android:id="@+id/moreContent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
+            </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Plovoucí Dock (Navigace) -->
@@ -301,6 +331,107 @@
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold" />
+            <ImageView
+                android:id="@+id/imgAIReady"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="-6dp"
+                android:layout_marginEnd="-12dp"
+                android:src="@drawable/ic_star_glow"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Weather Pill -->
+        <LinearLayout
+            android:id="@+id/weatherPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:elevation="20dp"
+            android:translationZ="20dp"
+            android:background="@drawable/pill_nav_background"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/menuBubble"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginEnd="8dp">
+            <ImageView
+                android:id="@+id/imgWeather"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_weather_sun"
+                app:tint="@color/white" />
+            <TextView
+                android:id="@+id/textWeatherCity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text=""
+                android:textColor="#B0FFFFFF"
+                android:textSize="10sp"
+                android:maxWidth="60dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/textTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="--"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Welcome Overlay -->
+        <FrameLayout
+            android:id="@+id/welcomeOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#A0000000"
+            android:elevation="500dp"
+            android:translationZ="500dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:padding="32dp"
+                android:background="@drawable/glass_card"
+                android:scaleX="0.8"
+                android:scaleY="0.8"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/textWelcomeGreeting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ahoj,"
+                    android:textColor="#B0FFFFFF"
+                    android:textSize="20sp" />
+                <TextView
+                    android:id="@+id/textWelcomeName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Student"
+                    android:textColor="@color/white"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Vítej zpět"
+                    android:textColor="#80FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
         </FrameLayout>
 
         <!-- Floating Menu Bubble -->
@@ -331,6 +462,18 @@
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:visibility="invisible"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Liquid Loading Overlay -->
+        <com.example.lepsibakalari.view.LiquidLoadingView
+            android:id="@+id/liquidLoading"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:alpha="0"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

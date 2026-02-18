@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Transparent or dark background inside the layer to allow the B to breathe -->
+    <item>
+        <color android:color="#00000000" />
+    </item>
+    <!-- The actual image, scaled up by 1.2x (from 108dp to ~130dp) -->
+    <item
+        android:id="@+id/scaled_icon"
+        android:drawable="@drawable/ic_launcher_full"
+        android:width="108dp"
+        android:height="108dp"
+        android:gravity="center" />
+</layer-list>

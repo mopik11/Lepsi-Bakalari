@@ -35,6 +35,8 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // INSTANT CHECK: Pokud jsme přihlášeni, letíme hned na dashboard
+        // Neděláme network check tady (ten proběhne na pozadí v MainActivity)
         repository = new BakalariRepository(this);
         if (repository.isLoggedIn()) {
             startMainActivity();
@@ -42,9 +44,15 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        // Jinak teprve teď kreslíme Login screen
         EdgeToEdge.enable(this);
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        String storedUrl = repository.getStoredBaseUrl();
+        if (storedUrl != null) {
+            binding.editBaseUrl.setText(storedUrl);
+        }
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
@@ -54,7 +62,7 @@ public class LoginActivity extends AppCompatActivity {
 
         // Aplikace blur efektu na pozadí pro Liquid Glass vzhled (API 31+)
         applyBlurEffect(binding.meshGradient);
-        
+
         // Defaultní URL školy
         binding.editBaseUrl.setText("https://bakalari.gymbk.cz/bakaweb");
 
@@ -89,7 +97,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private void performLogin() {
         String baseUrl = binding.editBaseUrl.getText() != null ? binding.editBaseUrl.getText().toString().trim() : "";
-        String username = binding.editUsername.getText() != null ? binding.editUsername.getText().toString().trim() : "";
+        String username = binding.editUsername.getText() != null ? binding.editUsername.getText().toString().trim()
+                : "";
         String password = binding.editPassword.getText() != null ? binding.editPassword.getText().toString() : "";
 
         if (baseUrl.isEmpty()) {

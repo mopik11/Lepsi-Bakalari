@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="@drawable/glass_card">
+
+    <TextView
+        android:id="@+id/textDetailCity"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Moje poloha"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp"
+        android:orientation="horizontal">
+        <ImageView
+            android:id="@+id/imgDetailWeather"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:src="@drawable/ic_weather_sun" />
+        <TextView
+            android:id="@+id/textDetailTemp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="0°"
+            android:textColor="@color/white"
+            android:textSize="56sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="24dp">
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pocitově"
+                android:textColor="#80FFFFFF"
+                android:textSize="11sp" />
+            <TextView
+                android:id="@+id/textDetailApparent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vlhkost"
+                android:textColor="#80FFFFFF"
+                android:textSize="11sp" />
+            <TextView
+                android:id="@+id/textDetailHumidity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vítr"
+                android:textColor="#80FFFFFF"
+                android:textSize="11sp" />
+            <TextView
+                android:id="@+id/textDetailWind"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="--"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/textDetailRaw"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="..."
+        android:textColor="#30FFFFFF"
+        android:textSize="8sp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/btnWeatherClose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Zavřít"
+        android:textColor="@color/white"
+        android:paddingHorizontal="40dp"
+        android:paddingVertical="10dp"
+        android:background="@drawable/glass_button"
+        android:textStyle="bold" />
+
+</LinearLayout>
