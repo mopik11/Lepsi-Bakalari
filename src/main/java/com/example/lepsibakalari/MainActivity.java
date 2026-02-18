@@ -2,7 +2,6 @@ package com.example.lepsibakalari;
 
 import android.content.Intent;
 import android.content.Context;
-import android.app.DownloadManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -22,7 +21,6 @@ import android.widget.TextView;
 import android.widget.ImageView;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-import android.widget.ProgressBar;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
@@ -79,10 +77,7 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 import com.example.lepsibakalari.worker.BakalariWorker;
-import com.example.lepsibakalari.ai.LocalLLMManager;
-import com.example.lepsibakalari.ai.ModelDownloader;
 import java.util.concurrent.TimeUnit;
-import java.io.File;
 
 /**
  * MainActivity - Dashboard s rozvrhem, známkami, Komens a dalšími moduly
@@ -105,7 +100,6 @@ public class MainActivity extends AppCompatActivity {
     private int activeLoadMoreRequests = 0;
     private WeatherResponse.CurrentWeather storedWeather;
     private double lastLat, lastLon;
-    private LocalLLMManager localLLM;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -183,14 +177,11 @@ public class MainActivity extends AppCompatActivity {
         applyGlassTouchEffect(binding.weatherPill);
         binding.weatherPill.setOnClickListener(v -> showWeatherDetailDialog());
 
-        showWelcomeScreen();
+        marksByDate = getPreferences(MODE_PRIVATE).getBoolean("marks_by_date", false);
+        updateMarksToggleUI(binding.marksToggle.getRoot());
+        loadInitialData();
         scheduleBackgroundChecks();
         requestNotificationPermission();
-
-        // Inicializace lokálního LLM (běží na pozadí)
-        localLLM = new LocalLLMManager(this);
-        startAIStatusPolling();
-        checkAndOfferModelDownload();
     }
 
     private void restoreLastWeather() {
@@ -546,6 +537,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void loadInitialData() {
+        showWelcomeScreen();
+        preloadAILatestData();
+    }
+
     private void showWelcomeScreen() {
         binding.welcomeOverlay.setAlpha(0f);
         binding.welcomeOverlay.setVisibility(View.VISIBLE);
@@ -681,12 +677,14 @@ public class MainActivity extends AppCompatActivity {
         View toggleRoot = binding.marksToggle.getRoot();
         toggleRoot.findViewById(R.id.btnBySubject).setOnClickListener(v -> {
             marksByDate = false;
+            getPreferences(MODE_PRIVATE).edit().putBoolean("marks_by_date", false).apply();
             updateMarksToggleUI(binding.marksToggle.getRoot());
             if (lastMarksData != null)
                 showMarks(lastMarksData);
         });
         toggleRoot.findViewById(R.id.btnByDate).setOnClickListener(v -> {
             marksByDate = true;
+            getPreferences(MODE_PRIVATE).edit().putBoolean("marks_by_date", true).apply();
             updateMarksToggleUI(binding.marksToggle.getRoot());
             if (lastMarksData != null)
                 showMarks(lastMarksData);
@@ -699,8 +697,8 @@ public class MainActivity extends AppCompatActivity {
         applyGlassTouchEffect(binding.navHomeworks);
         applyGlassTouchEffect(binding.navMore);
 
-        // AI Summary on Logo Click
-        binding.titleBubble.setOnClickListener(v -> showAISummaryDialog());
+        // Summary on Logo Click
+        binding.titleBubble.setOnClickListener(v -> showDailySummaryDialog());
     }
 
     private void updateMarksToggleUI(View root) {
@@ -806,6 +804,7 @@ public class MainActivity extends AppCompatActivity {
                 break;
             case TAB_MARKS:
                 binding.swipeMarks.setVisibility(View.VISIBLE);
+                updateMarksToggleUI(binding.marksToggle.getRoot());
                 binding.navMarksIcon.setColorFilter(0xFFFFFFFF);
                 binding.navMarksIcon.animate().scaleX(1.4f).scaleY(1.4f).setDuration(250).start();
                 loadMarks();
@@ -2524,7 +2523,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void showAISummaryDialog() {
+    private void showDailySummaryDialog() {
         tickVibration(50);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -2534,7 +2533,7 @@ public class MainActivity extends AppCompatActivity {
         container.setBackgroundResource(R.drawable.glass_card);
 
         TextView title = new TextView(this);
-        title.setText("AI Přehled Dne");
+        title.setText("Dnešní souhrn");
         title.setTextSize(22);
         title.setTextColor(Color.WHITE);
         title.setGravity(android.view.Gravity.CENTER);
@@ -2547,144 +2546,472 @@ public class MainActivity extends AppCompatActivity {
         content.setPadding(0, 40, 0, 40);
         content.setLineSpacing(0, 1.2f);
 
-        ProgressBar loading = new ProgressBar(this);
-        loading.setIndeterminate(true);
-        loading.setVisibility(View.GONE);
-        LinearLayout.LayoutParams lpLoading = new LinearLayout.LayoutParams(80, 80);
-        lpLoading.gravity = android.view.Gravity.CENTER;
-        loading.setLayoutParams(lpLoading);
-        container.addView(loading);
-
-        if (localLLM != null && localLLM.isInitializing()) {
-            content.setText(
-                    "Neural Engine se právě startuje...\nMá 1.5 GB, tak mu to chvíli trvá. Zkus to za 10 vteřin.");
-            container.addView(content);
-            showBuiltDialog(builder, container);
-            return;
-        }
-
-        if (localLLM != null && localLLM.isReady()) {
-            TextView modelBadge = new TextView(this);
-            modelBadge.setText("⚡ Local AI (Qwen 0.5B)");
-            modelBadge.setTextSize(10);
-            modelBadge.setTextColor(0x90FFFFFF);
-            modelBadge.setGravity(android.view.Gravity.CENTER);
-            container.addView(modelBadge);
-
-            content.setText("Neural Engine přemýšlí...");
-            loading.setVisibility(View.VISIBLE);
-            container.addView(content);
-            showBuiltDialog(builder, container);
-
-            // Qwen Chat Template
-            StringBuilder sbPrompt = new StringBuilder();
-            sbPrompt.append(
-                    "<|im_start|>system\nJsi školní asistent Bakalářů. Tvůj tón je lidský, kámošský a stručný.<|im_end|>\n");
-            sbPrompt.append("<|im_start|>user\nData o studentovi:\n");
-            if (lastTimetableData != null && lastTimetableData.getDays() != null
-                    && !lastTimetableData.getDays().isEmpty()) {
-                sbPrompt.append("- Rozvrh: ").append(lastTimetableData.getDays().get(0).getAtoms().size())
-                        .append(" hodin dnes.\n");
-            }
-            if (lastHomeworksData != null) {
-                int undone = 0;
-                for (HomeworksResponse.Homework h : lastHomeworksData.getHomeworks())
-                    if (!h.isDone())
-                        undone++;
-                sbPrompt.append("- Úkoly: ").append(undone).append(" restů.\n");
-            }
-            sbPrompt.append("Počasí: ").append(binding.textTemp.getText()).append(".\n");
-            sbPrompt.append("\nNapiš motivační shrnutí dne (česky, max 3 věty).<|im_end|>\n");
-            sbPrompt.append("<|im_start|>assistant\n");
-
-            localLLM.generateSummary(sbPrompt.toString(), new LocalLLMManager.LLMCallback() {
-                @Override
-                public void onResult(String result) {
-                    runOnUiThread(() -> {
-                        loading.setVisibility(View.GONE);
-                        // Clean up Qwen artifacts if any
-                        String clean = result.trim().replace("<|im_end|>", "").replace("<|endoftext|>", "");
-                        content.setText(clean);
-                    });
-                }
-                // ... (onError remains the same)
-
-                @Override
-                public void onError(String error) {
-                    runOnUiThread(() -> {
-                        loading.setVisibility(View.GONE);
-                        content.setText("Chyba: " + error);
-                    });
-                }
-            });
-            return;
-        }
-
-        // --- FALLBACK SMART RULES (if model file missing) ---
+        // --- DYNAMIC SUMMARY GENERATION ---
         StringBuilder sb = new StringBuilder();
         java.util.Random rnd = new java.util.Random();
 
+        // 1. Varied Greetings (50 variations)
         String[] greetings = {
-                "Čau! Mám pro tebe bleskový update:",
-                "Ahoj! Tady je info na dnešek:",
-                "Pozdrav z digitálního světa!",
-                "Vítej! Tady je tvůj školní briefing:"
+                "Čau! Tady je tvoje dnešní shrnutí.",
+                "Ahoj! Mrkni, co se dneska děje.",
+                "Nazdar! Tady jsou tvoje školní novinky.",
+                "Dobré ráno! Tady je tvůj briefing.",
+                "Vítej zpět! Tvoje data jsou připravena.",
+                "Hezký den! Tady je rychlý přehled.",
+                "Čest! Pojďme se podívat na dnešek.",
+                "Zdravím tě! Tady je tvůj den v kostce.",
+                "Ahoj, školáku! Tady je tvůj dnešní plán.",
+                "Čau! Jdeme na to, tady je přehled.",
+                "Nazdar! Máš tu pár čerstvých info.",
+                "Ahoj! Tvoje dnešní statistika je tady.",
+                "Zdravíčko! Tady jsou tvoje školní zprávy.",
+                "Čus! Tady je tvůj dnešní report.",
+                "Hej! Mrkni na tohle shrnutí.",
+                "Zdravím! Tady je tvůj dnešní dashboard.",
+                "Ahoj! Jsi připraven na dnešní info?",
+                "Čauvec! Tady je tvůj dnešní výcuc.",
+                "Nazdárek! Školní update je připravený.",
+                "Vítej! Tady je tvůj osobní přehled dne.",
+                "Jak to jde? Tady je tvůj dnešní status.",
+                "Haló! Tvoje dnešní karta je tady.",
+                "Svět školáka volá! Tady je tvoje shrnutí.",
+                "Ahoj! Přináším ti dnešní fakta.",
+                "Čau! Tvůj dnešní harmonogram v kostce.",
+                "Zdravím z cloudu! Tvoje data jsou tu.",
+                "Dobrý den! Tady je přehled tvých školních aktivit.",
+                "Tak co dneska? Tady je tvoje odpověď.",
+                "Ahoj! Tvůj studijní asistent hlásí hotovo.",
+                "Čau! Tady je dnešní dávka informací.",
+                "Nazdar! Koukni na dnešní školní scénu.",
+                "Čest práci! Tady máš dnešní přehled.",
+                "Ahoj! Tvůj denní sumář je na stole.",
+                "Zdravíčko! Co se dnes v Bakalářích peče?",
+                "Čus bus! Tady je tvůj dnešní navigátor.",
+                "Ahoj! Tvoje studijní bilance je připravená.",
+                "Hej ty! Tady máš svůj dnešní update.",
+                "Čau! Tady je tvůj dnešní profil.",
+                "Nazdar bazar! Tady jsou tvoje dnešní data.",
+                "Vítej u dnešního shrnutí tvého dne.",
+                "Ahoj! Tady je bleskový přehled tvé školy.",
+                "Čau! Dnešní den v datech je tu.",
+                "Zdravím! Tady je tvůj dnešní přehled.",
+                "Ahoj! Připravil jsem ti dnešní souhrn.",
+                "Čus! Mrkni na tvoje dnešní školní zrcadlo.",
+                "Nazdar! Tady je tvůj aktuální stav.",
+                "Čest! Tvoje dnešní školní relace je tu.",
+                "Ahoj! Tady je tvůj dnešní stručný výpis.",
+                "Zdravím tě u dalšího dnešního shrnutí.",
+                "Čau! Tady je tvoje dnešní informační karta."
         };
         sb.append(greetings[rnd.nextInt(greetings.length)]).append("\n\n");
 
+        // 2. Timetable Insights (More variety)
         if (lastTimetableData != null && lastTimetableData.getDays() != null
                 && !lastTimetableData.getDays().isEmpty()) {
             int total = lastTimetableData.getDays().get(0).getAtoms().size();
-            sb.append("📅 ").append(total > 6 ? "Drsný den: " : "Pohoda: ").append(total).append(" hodin.\n");
+            sb.append("📅 ");
+            if (total > 6) {
+                String[] texts = {
+                        "Dneska tě čeká náročný maraton: " + total + " hodin. To zvládneš!",
+                        "Uff, dneska je to na dlouho. Máš tam " + total + " hodin.",
+                        "Dnešní rozvrh je pořádná nálož - celkem " + total + " hodin.",
+                        "Připrav se na vytrvalostní běh, dnes máš " + total + " hodin.",
+                        "Dneska se ve škole ohřeješ, čeká tě " + total + " hodin.",
+                        "Psychická příprava začíná teď: " + total + " hodin před tebou.",
+                        "Školní směna dneska nekončí, celkem " + total + " hodin.",
+                        "Dneska budeš potřebovat extra kafe na těch " + total + " hodin.",
+                        "Rozvrh tě nešetří, čeká tě " + total + " hodin v lavici.",
+                        "Dneska je to na medaili za vytrvalost: " + total + " hodin.",
+                        "Pořádně se nadechni, dneska tě čeká " + total + " hodin.",
+                        "Školní budova tě dnes nepustí, máš tam " + total + " hodin.",
+                        "Dneska je to o přežití, celkem " + total + " hodin.",
+                        "Tvůj rozvrh dneska praská ve švech: " + total + " hodin.",
+                        "Bude to dlouhý den, máš jich tam " + total + ".",
+                        "Budík tě dneska nevaroval před těmi " + total + " hodinami.",
+                        "Dneska to bude chtít pevné nervy na těch " + total + " hodin.",
+                        "Tvůj dnešní program je nabitý: " + total + " hodin.",
+                        "Škola tě dneska vytěží na maximum, máš " + total + " hodin.",
+                        "Dneska se domů jen tak nedostaneš, celkem " + total + " hodin.",
+                        "Připrav se na maraton vědomostí: " + total + " hodin.",
+                        "Dneska je to fakt výzva - " + total + " hodin před tebou.",
+                        "Tvůj rozvrh je dneska nekonečný, celkem " + total + " hodin.",
+                        "Dneska tě čeká školní šichta: " + total + " hodin.",
+                        "V lavici dneska strávíš věčnost, přesněji " + total + " hodin.",
+                        "Dneska je to o trpělivosti, čeká tě " + total + " hodin.",
+                        "Tvůj denní plán je dneska krutý: " + total + " hodin.",
+                        "Dneska tě čeká pořádná porce školy, celkem " + total + " hodin.",
+                        "Připrav se na intelektuální zátěž, dnes máš " + total + " hodin.",
+                        "Dneska se škola protáhne, máš tam " + total + " hodin.",
+                        "Pořádná nálož výuky, dneska celkem " + total + " hodin.",
+                        "Dneska to bude bolet, máš tam " + total + " hodin.",
+                        "Školní den jak z hororu - celkem " + total + " hodin.",
+                        "Dneska se nezastavíš, čeká tě " + total + " hodin.",
+                        "Tvůj dnešní timetable je brutální: " + total + " hodin.",
+                        "Dneska tě čeká studijní extrém: " + total + " hodin.",
+                        "Školní budova bude tvým domovem na " + total + " hodin.",
+                        "Dneska je to na diplom za statečnost při " + total + " hodinách.",
+                        "Rozvrh tě dneska opravdu miluje: " + total + " hodin.",
+                        "Dneska to bude o drcení lavic po dobu " + total + " hodin.",
+                        "Připrav se na vědomostní bouři, dnes celkem " + total + " hodin.",
+                        "Dneska se ze školy vrátíš jako stín, máš tam " + total + " hodin.",
+                        "Tvůj dnešní plán je pro silné nátury: " + total + " hodin.",
+                        "Dneska tě čeká výukový masakr - celkem " + total + " hodin.",
+                        "Rozvrh dneska nebere zajatce: " + total + " hodin.",
+                        "Dneska to bude studijní očistec, celkem " + total + " hodin.",
+                        "Připrav se na školní nápor, máš tam " + total + " hodin.",
+                        "Dneska tě škola opravdu prověří, máš " + total + " hodin.",
+                        "Tvůj dnešní rozvrh je rekordní: " + total + " hodin.",
+                        "Dneska tě čeká nekonečný seriál výuky o " + total + " dílech."
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else if (total > 0) {
+                String[] texts = {
+                        "Dnes máš pohodových " + total + " hodin.",
+                        "Rozvrh na dnes vypadá fajn, jen " + total + " hodin.",
+                        "Dneska to uteče, máš tam celkem " + total + " hodin.",
+                        "Pohoda! Dnešní plán obsahuje " + total + " hodin.",
+                        "Dneska tě škola úplně nezničí, máš jen " + total + " hodin.",
+                        "Dneska to bude rychlovka, jenom " + total + " hodiny.",
+                        "Pohodový školní den s " + total + " hodinami.",
+                        "Dneska se ve škole nepředřeš, máš tam " + total + " hodin.",
+                        "Tvůj rozvrh je dneska kamarádský, celkem " + total + " hodin.",
+                        "Dneska budeš doma dřív, máš jen " + total + " hodin.",
+                        "Příjemný rozvrh na dnes: " + total + " hodin.",
+                        "Dneska tě čeká studijní pohodička o " + total + " hodinách.",
+                        "Škola dneska nebude bolet, máš tam jen " + total + " hodin.",
+                        "Dneska to bude brzy za tebou, celkem " + total + " hodin.",
+                        "Rozvrh tě dneska šetří, máš pohodových " + total + " hodin.",
+                        "Dneska máš čas i na život, jen " + total + " hodin školy.",
+                        "Tvůj dnešní plán je velmi milý: " + total + " hodin.",
+                        "Dneska to bude ve škole odsýpat, máš tam " + total + " hodin.",
+                        "Pohodový úterní (nebo jiný) rozvrh s " + total + " hodinami.",
+                        "Dneska tě čeká jen lehký studijní trénink: " + total + " hodin.",
+                        "Školní den uteče jako voda, máš jen " + total + " hodin.",
+                        "Dneska se ze školy vrátíš svěží, celkem " + total + " hodin.",
+                        "Tvůj dnešní rozvrh je balzám na duši: " + total + " hodin.",
+                        "Dneska to bude ve škole klidné, čeká tě " + total + " hodin.",
+                        "Rozvrh na dnes je vyloženě motivační: " + total + " hodin.",
+                        "Dneska máš školu jen tak na okrasu: " + total + " hodin.",
+                        "Pohoda v lavici zaručena pro dnešních " + total + " hodin.",
+                        "Dneska tě čeká jen krátká studijní relace: " + total + " hodin.",
+                        "Škola dneska rychle uteče, máš tam " + total + " hodin.",
+                        "Dneska budeš mít dost sil i na odpoledne, jen " + total + " hodin.",
+                        "Tvůj dnešní program je lehký jako pírko: " + total + " hodin.",
+                        "Dneska tě škola nezdrží, celkem " + total + " hodin.",
+                        "Pohodový den před tebou, jen " + total + " hodin.",
+                        "Dneska to bude studijní relax, máš tam " + total + " hodin.",
+                        "Rozvrh je dneska na tvé straně: " + total + " hodin.",
+                        "Dneska tě čeká jen mírná zátěž: " + total + " hodin.",
+                        "Školní den bude dneska radost, jen " + total + " hodin.",
+                        "Dneska to bude ve škole bleskovka, celkem " + total + " hodin.",
+                        "Pohodové zvládnutí školy s dnešními " + total + " hodinami.",
+                        "Dneska tě čeká jen pár hodin v lavici, přesně " + total + ".",
+                        "Rozvrh na dnes je vyloženě za odměnu: " + total + " hodin.",
+                        "Dneska se ve škole ani nestihneš nudit, máš jich " + total + ".",
+                        "Příjemné studijní dopoledne s " + total + " hodinami.",
+                        "Dneska to ve škole bude bavit, jen " + total + " hodin.",
+                        "Tvůj dnešní rozvrh je prostě skvělý: " + total + " hodin.",
+                        "Dneska tě škola nebude stresovat, celkem " + total + " hodin.",
+                        "Pohodové školní tempo s dnešními " + total + " hodinami.",
+                        "Dneska to bude ve škole utíkat samo, máš tam " + total + " hodin.",
+                        "Rozvrh je dneska tvůj nejlepší kámoš: " + total + " hodin.",
+                        "Dneska tě čeká jen krátká zastávka ve škole: " + total + " hodin."
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else {
+                String[] texts = {
+                        "Dneska máš volno! Užívej klidu.",
+                        "Žádná škola! Dneska máš veget.",
+                        "Dneska si od školy odpočineš, je volno.",
+                        "Rozvrh zeje prázdnotou, dneska máš padla.",
+                        "Užívej svobodu, dneska ti škola nehrozí."
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            }
+            sb.append("\n");
         }
 
+        // 3. Marks Insights (More variety)
+        if (lastMarksData != null && lastMarksData.getSubjects() != null) {
+            int goodMarks = 0;
+            int badMarks = 0;
+            for (MarksResponse.SubjectMarks sm : lastMarksData.getSubjects()) {
+                if (sm.getMarks() != null && !sm.getMarks().isEmpty()) {
+                    String m = sm.getMarks().get(0).getMarkText();
+                    if (m != null) {
+                        if (m.contains("1") || m.contains("2"))
+                            goodMarks++;
+                        if (m.contains("4") || m.contains("5"))
+                            badMarks++;
+                    }
+                }
+            }
+            if (goodMarks > 0) {
+                String[] texts = {
+                        "⭐ Poslední dobou ti to pálí! Vidím tam pěkné známky.\n",
+                        "⭐ Tvoje známky vypadají skvěle, jen tak dál!\n",
+                        "⭐ Vidím tam čerstvé úspěchy, seš hvězda!\n",
+                        "⭐ Ve známkách se ti teď vážně daří, super práce!\n",
+                        "⭐ Poslední zápisy ti udělají radost, seš dobrej!\n",
+                        "⭐ Máš tam fakt pěkný úlovek známek, klobouk dolů.\n",
+                        "⭐ Tvoje studijní výsledky jsou teď na vrcholu!\n",
+                        "⭐ Vidím tam samou radost ve tvých známkách.\n",
+                        "⭐ Poslední dobou jsi studijní mašina, skvěle!\n",
+                        "⭐ Tvoje známky září jako vánoční stromeček, super.\n",
+                        "⭐ Vidím tam velký progres, jen tak dál!\n",
+                        "⭐ Seš jasným favoritem na vyznamenání, pecka.\n",
+                        "⭐ Tvoje známky jsou teď v top formě.\n",
+                        "⭐ Vidím tam zasloužené úspěchy v každém předmětu.\n",
+                        "⭐ Poslední známky ti určitě zvednou náladu.\n",
+                        "⭐ Seš studijní talent, ty známky to jen potvrzují.\n",
+                        "⭐ Vidím tam samé pozitivní zápisy, skvělá práce.\n",
+                        "⭐ Tvoje známky jsou teď prostě bez chybičky.\n",
+                        "⭐ Poslední dobou seš ve škole k nezastavení, super.\n",
+                        "⭐ Vidím tam skvělé výsledky tvé snahy.\n",
+                        "⭐ Tvoje známky dělají radost mně i tvým rodičům.\n",
+                        "⭐ Seš v učení fakt dobrej, ty známky nelžou.\n",
+                        "⭐ Vidím tam čerstvou vlnu jedniček a dvojek, paráda.\n",
+                        "⭐ Tvoje studijní bilance je teď vyloženě rekordní.\n",
+                        "⭐ Poslední známky jsou důkazem, že na to máš.\n",
+                        "⭐ Vidím tam samé hezké věci ve tvém žákovském zápisu.\n",
+                        "⭐ Tvoje známky jsou teď tvojí nejlepší vizitkou.\n",
+                        "⭐ Poslední dobou záříš v každém testu, seš borec!\n",
+                        "⭐ Vidím tam vynikající výsledky tvého snažení.\n",
+                        "⭐ Tvoje známky jsou teď v absolutním pořádku.\n",
+                        "⭐ Poslední zápisy jsou prostě na jedničku (doslova)!\n",
+                        "⭐ Vidím tam samou chválu ve tvých studijních datech.\n",
+                        "⭐ Tvoje známky tě dneska určitě potěší.\n",
+                        "⭐ Seš studijní král dnešního dne, skvělé známky.\n",
+                        "⭐ Vidím tam zaslouženou odměnu za tvou snahu.\n",
+                        "⭐ Tvoje známky jsou teď vyloženě inspirativní.\n",
+                        "⭐ Poslední výsledky jsou důvodem k oslavě.\n",
+                        "⭐ Vidím tam fakt solidní základ pro vysvědčení.\n",
+                        "⭐ Tvoje známky jsou teď v bezpečné zóně úspěchu.\n",
+                        "⭐ Poslední zápisy jsou důkazem tvé píle.\n",
+                        "⭐ Vidím tam skvělý start k lepším průměrům.\n",
+                        "⭐ Tvoje známky jsou teď naprosto v pohodě.\n",
+                        "⭐ Poslední výsledky ti dodají sebevědomí, seš dobrej.\n",
+                        "⭐ Vidím tam velké úspěchy v tvém studijním deníku.\n",
+                        "⭐ Tvoje známky jsou teď v té nejlepší kondici.\n",
+                        "⭐ Poslední dobou seš ve škole prostě hvězda.\n",
+                        "⭐ Vidím tam zasloužené plody tvé práce.\n",
+                        "⭐ Tvoje známky jsou teď tvojí pýchou.\n",
+                        "⭐ Poslední výsledky jsou prostě fantastické.\n",
+                        "⭐ Vidím tam skvělou budoucnost tvého průměru.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else if (badMarks > 0) {
+                String[] texts = {
+                        "💡 Vidím tam pár horších známek, ale dají se v klidu opravit.\n",
+                        "💡 Nenech se rozhodit pár horšími známkami, příště to bude lepší.\n",
+                        "💡 Objevilo se tam něco méně povedeného, ale to k tomu patří.\n",
+                        "💡 Známky nejsou všechno, příště ty horší určitě vymažeš.\n",
+                        "💡 Vidím tam drobný zádrhel ve známkách, ale nic hrozného.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else {
+                String[] texts = {
+                        "⭐ Ve známkách máš aktuálně všechno pod kontrolou.\n",
+                        "⭐ Poslední známky vypadají vyrovnaně, žádné drama.\n",
+                        "⭐ Studijní výsledky jsou teď stabilní, pohodička.\n",
+                        "⭐ Ve známkách je teď klid po bouři, všechno ok.\n",
+                        "⭐ Tvoje známky si drží svůj standard, žádné překvapení.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            }
+        }
+
+        // 4. Homeworks (More variety)
         if (lastHomeworksData != null && lastHomeworksData.getHomeworks() != null) {
             int undone = 0;
-            for (HomeworksResponse.Homework h : lastHomeworksData.getHomeworks())
+            for (HomeworksResponse.Homework h : lastHomeworksData.getHomeworks()) {
                 if (!h.isDone())
                     undone++;
-            sb.append(undone > 0 ? "✏️ Úkoly: Zbývá ti " + undone + "." : "✅ Úkoly: Vše hotovo!").append("\n");
+            }
+            if (undone > 3) {
+                String[] texts = {
+                        "✏️ Máš tam " + undone + " restů v úkolech. Radši na to mrkni.\n",
+                        "✏️ Úkoly se ti nějak hromadí, vidím tam " + undone + " restů.\n",
+                        "✏️ Dneska by to chtělo máknout na úkolech, máš jich " + undone + ".\n",
+                        "✏️ Pozor na " + undone + " nedodělané úkoly, ať tě to nezahltí.\n",
+                        "✏️ Rozhodně mrkni na úkoly, svítí tam na mě " + undone + " kousků.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else if (undone > 0) {
+                String[] texts = {
+                        "✏️ Zbývá ti jen " + undone + " rest. To je za chvilku hotové.\n",
+                        "✏️ Jeden úkol (vlastně " + undone + ") tě ještě čeká, pak máš klid.\n",
+                        "✏️ Máš tam drobný restík (" + undone + " úkol), dej to hned teď.\n",
+                        "✏️ Úkoly jsou skoro hotové, zbývá ti jen " + undone + ".\n",
+                        "✏️ Jen " + undone + " úkol tě dělí od úplné svobody.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            } else {
+                String[] texts = {
+                        "✅ Žádné resty! Jsi vzorný student.\n",
+                        "✅ Všechny úkoly máš hotové, seš borec!\n",
+                        "✅ Úkoly tě dneska trápit nemusí, máš čistý štít.\n",
+                        "✅ Seznam úkolů je prázdný, užívej si to.\n",
+                        "✅ Seš v pohodě, všechno máš odevzdané.\n",
+                        "✅ Úkoly? Žádné nevidím, máš volno!\n",
+                        "✅ Dneska máš čistou hlavu, úkoly jsou hotové.\n",
+                        "✅ Žádná povinnost tě dnes nečeká, úkoly splněny.\n",
+                        "✅ Seš vzorný, v kolonce úkolů je nula.\n",
+                        "✅ Dneska můžeš relaxovat, úkoly máš v kapse.\n",
+                        "✅ Žádné resty, tvůj žákovský profil je čistý.\n",
+                        "✅ Úkoly máš vyřešené, můžeš se věnovat zábavě.\n",
+                        "✅ Seš prostě šikula, žádný úkol nezbyl.\n",
+                        "✅ Dneska máš od úkolů pokoj, skvělá práce.\n",
+                        "✅ Tabulka úkolů zeje prázdnotou, paráda!\n",
+                        "✅ Žádná nedodělaná práce, jsi prostě jednička.\n",
+                        "✅ Úkoly jsou minulostí, dneska máš klid.\n",
+                        "✅ Seš poctivý, všechno máš hotovo včas.\n",
+                        "✅ Žádný úkol ti dnes náladu nezkazí.\n",
+                        "✅ Seznam úkolů: hotovo, hotovo, hotovo!\n",
+                        "✅ Dneska tě úkoly nebudou budit ze spaní.\n",
+                        "✅ Žádné nedodělky nevidím, jen čistý progres.\n",
+                        "✅ Seš v úkolech stoprocentní, skvělá práce.\n",
+                        "✅ Úkoly? Ty už máš dávno z krku.\n",
+                        "✅ Dneska tě čeká jen zasloužený odpočinek od úkolů.\n",
+                        "✅ Žádná zbývající práce, jsi vzorný jak z učebnice.\n",
+                        "✅ Úkoly máš v malíčku, nic tě dnes nečeká.\n",
+                        "✅ Seš prostě nejlepší, úkoly máš vyřízené.\n",
+                        "✅ Dneska máš klid od všech domácích příprav.\n",
+                        "✅ Žádné nevyřešené úkoly, jsi mašina.\n",
+                        "✅ Seznam úkolů je tvůj kamarád, dnes tam nic není.\n",
+                        "✅ Úkoly máš odbavené, užívej si zbytek dne.\n",
+                        "✅ Seš poctivý student, úkoly máš vždy hotové.\n",
+                        "✅ Žádná zbytečná zátěž, úkoly jsou odevzdané.\n",
+                        "✅ Dneska si užívej, úkoly máš vyřešené.\n",
+                        "✅ Seš v úkolech nezastavitelný, nic nezbylo.\n",
+                        "✅ Žádné resty nevidím, tvůj progres je skvělý.\n",
+                        "✅ Úkoly máš v kapse, dneska se můžeš bavit.\n",
+                        "✅ Seš prostě hvězda, úkoly máš hotové.\n",
+                        "✅ Žádná nevyřízená práce, skvělé výsledky.\n",
+                        "✅ Úkoly jsou u konce, dneska máš veget.\n",
+                        "✅ Seš nejzodpovědnější student, úkoly splněny.\n",
+                        "✅ Dneska máš od úkolů úplnou svobodu.\n",
+                        "✅ Žádné zbývající položky v úkolech, paráda.\n",
+                        "✅ Úkoly máš pod kontrolou, nic ti neškodí.\n",
+                        "✅ Seš vzorný, úkoly máš všechny z krku.\n",
+                        "✅ Žádné nedodělky nevidím, jen úspěch.\n",
+                        "✅ Úkoly máš vyřešené, dej si nohy nahoru.\n",
+                        "✅ Seš mašina na úkoly, všechno máš hotovo.\n",
+                        "✅ Dneska tě úkoly prostě netíží, skvělá zpráva.\n"
+                };
+                sb.append(texts[rnd.nextInt(texts.length)]);
+            }
         }
 
-        // 5. Weather Aware Advice (original logic, slightly modified for brevity)
+        // 5. Weather Advice (More variety)
         String tempText = binding.textTemp.getText().toString();
         if (!tempText.equals("--")) {
             try {
                 int temp = Integer.parseInt(tempText.replace("°", "").replace("+", "").trim());
                 sb.append("\n☁️ ");
-                if (temp < 5)
-                    sb.append("Venku mrzne, tak se pořádně nabal.");
-                else if (temp < 15)
-                    sb.append("Je celkem chladno, mikina se bude hodit.");
-                else if (temp > 25)
-                    sb.append("Dneska je vedro, nezapomeň hodně pít!");
-                else
-                    sb.append("Počasí vypadá celkem fajn.");
+                if (temp < 5) {
+                    String[] texts = {
+                            "Venku mrzne, tak se pořádně nabal.",
+                            "Zima jako v ruským filmu, rukavice nutností!",
+                            "Zuby ti budou cvakat, venku je jen " + temp + " stupňů.",
+                            "Tuhle kosu nepodceňuj, vem si tu nejteplejší bundu.",
+                            "Venku je poctivá zimní nálada, bacha na rampouchy."
+                    };
+                    sb.append(texts[rnd.nextInt(texts.length)]);
+                } else if (temp < 15) {
+                    String[] texts = {
+                            "Je celkem chladno, mikina se bude hodit.",
+                            "Podzimní pocitovka, vrstvení je základ.",
+                            "Venku to na tričko není, hoď na sebe něco teplejšího.",
+                            "Čerstvý vzduch, ale nezapomeň na bundu.",
+                            "Teplota na náladě nepřidá, je tam jen " + temp + " stupňů."
+                    };
+                    sb.append(texts[rnd.nextInt(texts.length)]);
+                } else if (temp > 25) {
+                    String[] texts = {
+                            "Dneska je vedro, nezapomeň hodně pít!",
+                            "Letní parno je tu, kraťasy jsou povinnost.",
+                            "Sluníčko pálí, hledej stín a doplňuj tekutiny.",
+                            "Venku je to na koupačku, pořádný hic!",
+                            "Dneska se upečeš, jestli si nevezmeš dost vody."
+                    };
+                    sb.append(texts[rnd.nextInt(texts.length)]);
+                } else {
+                    String[] texts = {
+                            "Počasí vypadá celkem fajn.",
+                            "Venku je příjemně, ideální školní den.",
+                            "Teplota akorát, ani hic, ani kosa.",
+                            "Dnešní počasí tě určitě nenaštve.",
+                            "Vypadá to na fajn den, venku je " + temp + " stupňů."
+                    };
+                    sb.append(texts[rnd.nextInt(texts.length)]);
+                }
                 sb.append("\n");
             } catch (Exception ignored) {
             }
         }
 
-        File modelFileCheck = new File(getExternalFilesDir(null), "ai_model.task");
-        boolean exists = modelFileCheck.exists();
-        long size = exists ? modelFileCheck.length() : 0;
+        // 6. Varied Closings (50 variations)
+        String[] closings = {
+                "\nTak ať se ti dneska daří! 🚀",
+                "\nHodně štěstí u tabule! 🍀",
+                "\nUžij si zbytek dne naplno. 🌟",
+                "\nMěj se fajn a zase čau! ✌️",
+                "\nŠťastný lov jedniček! 🎯",
+                "\nDrž se, zvládneš to! 💪",
+                "\nAť to dneska uteče jako voda. ⏳",
+                "\nMěj se fanfárově! 🎉",
+                "\nPřeju ti úspěšný den. ✨",
+                "\nTak zase příště u dalšího shrnutí. 👋",
+                "\nZvládneš to, věřím ti! ❤️",
+                "\nUžívej si školu (pokud to jde). 🏫",
+                "\nBojuj a ukaž jim to! 🥊",
+                "\nMěj se krásně a odpočiň si pak. 🛋️",
+                "\nAť ti to dneska pálí! 🔥",
+                "\nBuď dneska hvězdou třídy. ⭐",
+                "\nPřeju klidný a úspěšný den. 🕊️",
+                "\nTak čau a ať se daří! 😎",
+                "\nMěj super den! 🌈",
+                "\nDržíme ti palce! 🤞",
+                "\nAť tě Bakaláři dneska jen těší! 📖",
+                "\nMěj se hezky a ať to odsýpá. 🏃",
+                "\nPřeju ti, ať tě dnes nic nepřekvapí. ⚡",
+                "\nTak šup do práce a ať to jde samo! 🛠️",
+                "\nMěj se fajn, tvoje škola tě potřebuje! 🎓",
+                "\nPřeju ti den bez pětek! 🚫5️⃣",
+                "\nAť je dnešek tvůj nejlepší školní den. 🏆",
+                "\nMěj se skvěle a buď v klidu. 🧘",
+                "\nTak čau, vidíme se u příštího refreshu! 🔄",
+                "\nHodně sil do dnešního dne! 🔋",
+                "\nPřeju ti den plný dobrých zpráv. 📩",
+                "\nMěj se a ať tě učitelé šetří! 👨‍🏫",
+                "\nAť ti dnešek přinese jen radost. 😊",
+                "\nMěj se a ať ti to ve škole utíká! 💨",
+                "\nPřeju ti, ať jsi dneska nejlepší! 🥇",
+                "\nTak zase čau a drž se! 👊",
+                "\nMěj se hezky a hlavu vzhůru! ⬆️",
+                "\nŠkolu zvládneš levou zadní! 🦶",
+                "\nPřeju ti den bez stresu a písemek. 📝",
+                "\nMěj se skvěle a užij si přestávky! 🥪",
+                "\nDržíme ti všechny čtyři palce! 🤞🤞",
+                "\nAť je tvůj dnešek prostě boží! 🙌",
+                "\nMěj se a buď dneska za hvězdu. 💫",
+                "\nPřeju ti, ať se dneska jen usmíváš. 😄",
+                "\nTak čau a ať tě škola baví! 🧩",
+                "\nMěj se fajn a nezapomeň se bavit. 🎈",
+                "\nPřeju ti lehký krok a čistou hlavu. 🧠",
+                "\nMěj se a ať tě Bakaláři nezlobí. 📱",
+                "\nŠťastný a veselý školní den! 🎊",
+                "\nTak zatím čau a buď v pohodě! 🧊"
+        };
+        sb.append(closings[rnd.nextInt(closings.length)]);
 
-        sb.append("\n💡 AI Status: ")
-                .append(exists ? "Soubor nalezen (" + (size / (1024 * 1024)) + " MB), ale mozek se nespustil."
-                        : "Model nenalezen.");
-        if (!exists)
-            sb.append("\nZkuste stahování znovu nebo nahrajte ai_model.task.");
-
-        sb.append("\n\nUžij si den! 🚀");
         content.setText(sb.toString());
         container.addView(content);
 
-        showBuiltDialog(builder, container);
-    }
-
-    private void showBuiltDialog(AlertDialog.Builder builder, View container) {
         builder.setView(container);
         AlertDialog dialog = builder.create();
+
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -2694,35 +3021,14 @@ public class MainActivity extends AppCompatActivity {
                 dialog.getWindow().setAttributes(lp);
             }
         }
+
         dialog.show();
+
+        // Animation
         container.setAlpha(0f);
         container.setScaleX(0.9f);
         container.animate().alpha(1f).scaleX(1f).setDuration(400)
                 .setInterpolator(new android.view.animation.OvershootInterpolator()).start();
-    }
-
-    private void startAIStatusPolling() {
-        new Thread(() -> {
-            // Kontrola každé 2 sekundy, dokud se AI nenahraje
-            while (!isFinishing()) {
-                if (localLLM != null && localLLM.isReady()) {
-                    runOnUiThread(() -> {
-                        binding.imgAIReady.setVisibility(View.VISIBLE);
-                        binding.imgAIReady.setAlpha(0f);
-                        binding.imgAIReady.animate().alpha(1f).scaleX(1.3f).scaleY(1.3f).setDuration(600)
-                                .withEndAction(() -> binding.imgAIReady.animate().scaleX(1.0f).scaleY(1.0f)
-                                        .setDuration(400).start())
-                                .start();
-                    });
-                    break;
-                }
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        }).start();
     }
 
     private void scheduleBackgroundChecks() {
@@ -2745,92 +3051,5 @@ public class MainActivity extends AppCompatActivity {
                 ActivityCompat.requestPermissions(this, new String[] { postNotif }, 101);
             }
         }
-    }
-
-    private void checkAndOfferModelDownload() {
-        File modelFile = new File(getExternalFilesDir(null), "ai_model.task");
-        if (!modelFile.exists()) {
-            SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-            boolean alreadyAsked = prefs.getBoolean("model_check_asked", false);
-
-            if (!alreadyAsked) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Aktivovat plné AI?")
-                        .setMessage(
-                                "Chcete stáhnout Neural Engine (cca 400MB)? Umožní to generování chytrých přehledů offline pomocí skutečného lokálního modelu. Doporučujeme WiFi.")
-                        .setPositiveButton("Stáhnout", (dialog, which) -> {
-                            prefs.edit().putBoolean("model_check_asked", true).apply();
-                            startModelDownload();
-                        })
-                        .setNegativeButton("Později", (dialog, which) -> {
-                            prefs.edit().putBoolean("model_check_asked", true).apply();
-                        })
-                        .show();
-            }
-        }
-    }
-
-    private void startModelDownload() {
-        View dialogView = getLayoutInflater().inflate(R.layout.layout_download_progress, null);
-        ProgressBar pb = dialogView.findViewById(R.id.downloadProgressBar);
-        TextView tvStatus = dialogView.findViewById(R.id.downloadStatus);
-        TextView tvPercent = dialogView.findViewById(R.id.downloadPercent);
-
-        AlertDialog downloadDialog = new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setCancelable(false)
-                .create();
-
-        if (downloadDialog.getWindow() != null) {
-            downloadDialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-        downloadDialog.show();
-
-        new ModelDownloader(this).startDownload(new ModelDownloader.DownloadCallback() {
-            @Override
-            public void onFinished(File file) {
-                runOnUiThread(() -> {
-                    downloadDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "Neural Engine byl úspěšně stažen!", Toast.LENGTH_SHORT).show();
-                    localLLM = new LocalLLMManager(MainActivity.this);
-                    startAIStatusPolling();
-                });
-            }
-
-            @Override
-            public void onProgress(int progress, long current, long total) {
-                runOnUiThread(() -> {
-                    pb.setProgress(progress);
-                    tvPercent.setText(progress + "%");
-                    String status;
-                    if (total > 0) {
-                        status = String.format(Locale.getDefault(), "Staženo %.1f MB / %.1f MB",
-                                current / (1024.0 * 1024.0), total / (1024.0 * 1024.0));
-                    } else if (total < 0) {
-                        // Special case: paused with reason
-                        int reason = (int) Math.abs(total);
-                        status = "Pozastaveno: ";
-                        if (reason == DownloadManager.PAUSED_QUEUED_FOR_WIFI)
-                            status += "Čekání na WiFi";
-                        else if (reason == DownloadManager.PAUSED_WAITING_FOR_NETWORK)
-                            status += "Čekání na síť";
-                        else
-                            status += "Kód " + reason;
-                    } else {
-                        status = String.format(Locale.getDefault(), "Staženo %.1f MB (zjišťování velikosti...)",
-                                current / (1024.0 * 1024.0));
-                    }
-                    tvStatus.setText(status);
-                });
-            }
-
-            @Override
-            public void onError(String message) {
-                runOnUiThread(() -> {
-                    downloadDialog.dismiss();
-                    Toast.makeText(MainActivity.this, "Chyba stahování: " + message, Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
     }
 }

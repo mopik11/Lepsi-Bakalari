@@ -331,15 +331,6 @@
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold" />
-            <ImageView
-                android:id="@+id/imgAIReady"
-                android:layout_width="14dp"
-                android:layout_height="14dp"
-                android:layout_gravity="top|end"
-                android:layout_marginTop="-6dp"
-                android:layout_marginEnd="-12dp"
-                android:src="@drawable/ic_star_glow"
-                android:visibility="gone" />
         </FrameLayout>
 
         <!-- Weather Pill -->
