@@ -1,89 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
     android:background="@drawable/glass_card"
-    android:padding="16dp">
+    android:orientation="vertical"
+    android:padding="20dp">
 
-    <!-- Horní řada: Předmět a termín -->
     <TextView
         android:id="@+id/textSubject"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
         android:textColor="@color/white"
-        android:textSize="17sp"
-        android:textStyle="bold"
-        android:ellipsize="end"
-        android:maxLines="1"
-        app:layout_constraintEnd_toStartOf="@id/textDate"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
-    <!-- Badge s datem odevzdání -->
+    <TextView
+        android:id="@+id/textContent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:textColor="#CCFFFFFF"
+        android:textSize="13sp" />
+
     <TextView
         android:id="@+id/textDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/glass_date_badge"
-        android:paddingHorizontal="10dp"
-        android:paddingVertical="4dp"
-        android:textColor="@color/white"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Popis úkolu -->
-    <TextView
-        android:id="@+id/textContent"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:maxLines="4"
-        android:ellipsize="end"
-        android:lineSpacingExtra="2dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textSubject" />
-
-    <!-- Indikátor hotovo (Custom Glass Switch) -->
-    <LinearLayout
-        android:id="@+id/layoutDone"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/ripple_glass"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/textContent">
-
-        <CheckBox
-            android:id="@+id/checkDone"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:buttonTint="@color/white"
-            android:clickable="false"
-            android:focusable="false" />
-
-        <TextView
-            android:id="@+id/textDoneStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Hotovo"
-            android:textColor="@color/white"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+        android:layout_marginTop="4dp"
+        android:textColor="#99FFFFFF"
+        android:textSize="11sp" />
+</LinearLayout>

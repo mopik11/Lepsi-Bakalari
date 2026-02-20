@@ -6,8 +6,15 @@ public class NominatimResponse {
     @SerializedName("address")
     private Address address;
 
+    @SerializedName("display_name")
+    private String displayName;
+
     public Address getAddress() {
         return address;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     public static class Address {

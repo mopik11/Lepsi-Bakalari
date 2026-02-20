@@ -1,106 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="14dp"
+    android:layout_marginBottom="12dp"
     android:background="@drawable/glass_card"
-    android:padding="16dp">
+    android:orientation="vertical"
+    android:padding="20dp">
 
-    <!-- Avatar Circle -->
     <TextView
-        android:id="@+id/textAvatar"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:background="@drawable/glass_circle"
-        android:gravity="center"
-        android:textColor="@color/white"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Content Container -->
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="8dp"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/badgeContainer"
-        app:layout_constraintStart_toEndOf="@id/textAvatar"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:id="@+id/textTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/textSender"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
-
-        <!-- Rich Preview (first 2 lines) -->
-        <TextView
-            android:id="@+id/textPreview"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:alpha="0.7"
-            android:ellipsize="end"
-            android:maxLines="2"
-            android:textColor="@color/white"
-            android:textSize="13sp" />
-    </LinearLayout>
-
-    <!-- Badge Container (Date + Attachment) -->
-    <LinearLayout
-        android:id="@+id/badgeContainer"
+        android:id="@+id/textTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="end"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/textDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/glass_date_badge"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="3dp"
-            android:textColor="@color/white"
-            android:textSize="11sp"
-            android:textStyle="bold" />
+    <TextView
+        android:id="@+id/textSender"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#CCFFFFFF"
+        android:textSize="12sp" />
 
-        <!-- Attachment Indicator -->
-        <TextView
-            android:id="@+id/textAttachment"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/glass_date_badge"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="3dp"
-            android:text="📎"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:visibility="gone" />
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:id="@+id/textDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="#99FFFFFF"
+        android:textSize="11sp" />
+</LinearLayout>

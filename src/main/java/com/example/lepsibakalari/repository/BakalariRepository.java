@@ -16,7 +16,6 @@ import com.example.lepsibakalari.api.MarksFinalResponse;
 import com.example.lepsibakalari.api.MarksResponse;
 import com.example.lepsibakalari.api.SubstitutionsResponse;
 import com.example.lepsibakalari.api.TimetableResponse;
-import com.example.lepsibakalari.api.UserResponse;
 
 import java.util.Collections;
 import com.google.gson.Gson;
@@ -37,8 +36,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * Repository pro veškerou síťovou logiku a persistentní uložení tokenů.
- * Používá EncryptedSharedPreferences pro bezpečné uložení access tokenu a base
- * URL.
+ * Používá EncryptedSharedPreferences pro bezpečné uložení access tokenu a base URL.
  */
 public class BakalariRepository {
 
@@ -46,8 +44,6 @@ public class BakalariRepository {
     private static final String KEY_ACCESS_TOKEN = "access_token";
     private static final String KEY_REFRESH_TOKEN = "refresh_token";
     private static final String KEY_BASE_URL = "base_url";
-    private static final String KEY_USERNAME = "username";
-    private static final String KEY_PASSWORD = "password";
     private static final String CLIENT_ID = "ANDR";
 
     private final Context context;
@@ -71,7 +67,8 @@ public class BakalariRepository {
                     PREFS_NAME,
                     masterKey,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
         } catch (GeneralSecurityException | IOException e) {
             throw new RuntimeException("Failed to initialize EncryptedSharedPreferences", e);
         }
@@ -97,7 +94,7 @@ public class BakalariRepository {
     /**
      * Vytvoří nebo získá Retrofit instanci pro danou Base URL
      */
-    public synchronized BakalariApi getApi(String baseUrl) {
+    private BakalariApi getApi(String baseUrl) {
         String normalized = normalizeBaseUrl(baseUrl);
         if (normalized == null) {
             throw new IllegalArgumentException("Base URL cannot be null or empty");
@@ -115,33 +112,6 @@ public class BakalariRepository {
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .addInterceptor(logging)
-                .addInterceptor(chain -> {
-                    okhttp3.Request request = chain.request();
-                    // Do NOT add Authorization header for login endpoints
-                    if (request.url().encodedPath().endsWith("api/login")) {
-                        return chain.proceed(request);
-                    }
-
-                    String token = getStoredAccessToken();
-                    if (token != null) {
-                        return chain.proceed(request.newBuilder()
-                                .header("Authorization", "Bearer " + token)
-                                .build());
-                    }
-                    return chain.proceed(request);
-                })
-                .authenticator((route, response) -> {
-                    // Pokud dostaneme 401, zkusíme refresh
-                    if (response.code() == 401) {
-                        String newToken = performSyncRefreshToken();
-                        if (newToken != null) {
-                            return response.request().newBuilder()
-                                    .header("Authorization", "Bearer " + newToken)
-                                    .build();
-                        }
-                    }
-                    return null;
-                })
                 .build();
 
         Retrofit retrofit = new Retrofit.Builder()
@@ -153,51 +123,6 @@ public class BakalariRepository {
         currentBaseUrl = normalized;
         api = retrofit.create(BakalariApi.class);
         return api;
-    }
-
-    private String performSyncRefreshToken() {
-        String baseUrl = getStoredBaseUrl();
-        String refreshToken = encryptedPrefs.getString(KEY_REFRESH_TOKEN, null);
-        if (baseUrl == null || refreshToken == null)
-            return null;
-
-        // Vytvoříme dočasný Retrofit s lenient nastavením a bez interceptoru
-        Gson gson = new GsonBuilder().setLenient().create();
-        OkHttpClient simpleClient = new OkHttpClient.Builder().build();
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(normalizeBaseUrl(baseUrl) + "/")
-                .client(simpleClient)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
-
-        BakalariApi refreshApi = retrofit.create(BakalariApi.class);
-        try {
-            retrofit2.Response<LoginResponse> response = refreshApi.refreshToken(
-                    CLIENT_ID, "refresh_token", refreshToken).execute();
-            if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                LoginResponse body = response.body();
-                saveCredentials(baseUrl, body.getAccessToken(), body.getRefreshToken(), null, null);
-                return body.getAccessToken();
-            } else {
-                // Refresh se nepovedl - zkusíme full login pokud máme uloženo heslo
-                String savedUser = encryptedPrefs.getString(KEY_USERNAME, null);
-                String savedPass = encryptedPrefs.getString(KEY_PASSWORD, null);
-                if (savedUser != null && savedPass != null) {
-                    retrofit2.Response<LoginResponse> loginResp = refreshApi
-                            .login(CLIENT_ID, "password", savedUser, savedPass).execute();
-                    if (loginResp.isSuccessful() && loginResp.body() != null && loginResp.body().isSuccess()) {
-                        LoginResponse b = loginResp.body();
-                        saveCredentials(baseUrl, b.getAccessToken(), b.getRefreshToken(), savedUser, savedPass);
-                        return b.getAccessToken();
-                    }
-                }
-                // I full login selhal - smažeme vše
-                clearCredentials();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     public String getStoredBaseUrl() {
@@ -212,19 +137,12 @@ public class BakalariRepository {
         return getStoredAccessToken() != null && getStoredBaseUrl() != null;
     }
 
-    public void saveCredentials(String baseUrl, String accessToken, String refreshToken, String username,
-            String password) {
-        SharedPreferences.Editor editor = encryptedPrefs.edit()
+    public void saveCredentials(String baseUrl, String accessToken, String refreshToken) {
+        encryptedPrefs.edit()
                 .putString(KEY_BASE_URL, normalizeBaseUrl(baseUrl))
                 .putString(KEY_ACCESS_TOKEN, accessToken)
-                .putString(KEY_REFRESH_TOKEN, refreshToken);
-
-        if (username != null)
-            editor.putString(KEY_USERNAME, username);
-        if (password != null)
-            editor.putString(KEY_PASSWORD, password);
-
-        editor.apply();
+                .putString(KEY_REFRESH_TOKEN, refreshToken)
+                .apply();
     }
 
     public void clearCredentials() {
@@ -232,8 +150,6 @@ public class BakalariRepository {
                 .remove(KEY_ACCESS_TOKEN)
                 .remove(KEY_REFRESH_TOKEN)
                 .remove(KEY_BASE_URL)
-                .remove(KEY_USERNAME)
-                .remove(KEY_PASSWORD)
                 .apply();
         api = null;
         currentBaseUrl = null;
@@ -252,8 +168,7 @@ public class BakalariRepository {
                     if (response.isSuccessful() && response.body() != null) {
                         LoginResponse loginResponse = response.body();
                         if (loginResponse.isSuccess()) {
-                            saveCredentials(baseUrl, loginResponse.getAccessToken(), loginResponse.getRefreshToken(),
-                                    username, password);
+                            saveCredentials(baseUrl, loginResponse.getAccessToken(), loginResponse.getRefreshToken());
                         }
                     }
                     callback.onResponse(call, response);
@@ -285,8 +200,7 @@ public class BakalariRepository {
             @Override
             public void onResponse(Call<LoginResponse> call, retrofit2.Response<LoginResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    saveCredentials(baseUrl, response.body().getAccessToken(), response.body().getRefreshToken(), null,
-                            null);
+                    saveCredentials(baseUrl, response.body().getAccessToken(), response.body().getRefreshToken());
                 }
                 callback.onResponse(call, response);
             }
@@ -299,32 +213,17 @@ public class BakalariRepository {
     }
 
     /**
-     * Načte informace o uživateli
-     */
-    public void getUserInfo(Callback<UserResponse> callback) {
-        String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
-            callback.onFailure(null, new IllegalStateException("Not logged in"));
-            return;
-        }
-        String token = getStoredAccessToken();
-        if (token == null) {
-            callback.onFailure(null, new IllegalStateException("Not logged in"));
-            return;
-        }
-        getApi(baseUrl).getUserInfo("Bearer " + token).enqueue(callback);
-    }
-
-    /**
      * Načte aktuální rozvrh pro dané datum
      */
     public void getTimetable(String date, Callback<TimetableResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getTimetable(null, date).enqueue(callback);
+        String auth = "Bearer " + token;
+        getApi(baseUrl).getTimetable(auth, date).enqueue(callback);
     }
 
     /**
@@ -340,11 +239,13 @@ public class BakalariRepository {
      */
     public void getMarks(Callback<MarksResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getMarks(null).enqueue(callback);
+        String auth = "Bearer " + token;
+        getApi(baseUrl).getMarks(auth).enqueue(callback);
     }
 
     /**
@@ -352,11 +253,12 @@ public class BakalariRepository {
      */
     public void getMarksFinal(Callback<MarksFinalResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getMarksFinal(null).enqueue(callback);
+        getApi(baseUrl).getMarksFinal("Bearer " + token).enqueue(callback);
     }
 
     /**
@@ -364,11 +266,12 @@ public class BakalariRepository {
      */
     public void getKomensReceived(Callback<KomensResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getKomensReceived(null, Collections.emptyMap()).enqueue(callback);
+        getApi(baseUrl).getKomensReceived("Bearer " + token, Collections.emptyMap()).enqueue(callback);
     }
 
     /**
@@ -376,11 +279,12 @@ public class BakalariRepository {
      */
     public void getAbsence(Callback<AbsenceResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getAbsence(null).enqueue(callback);
+        getApi(baseUrl).getAbsence("Bearer " + token).enqueue(callback);
     }
 
     /**
@@ -388,11 +292,12 @@ public class BakalariRepository {
      */
     public void getHomeworks(String from, String to, Callback<HomeworksResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getHomeworks(null, from, to).enqueue(callback);
+        getApi(baseUrl).getHomeworks("Bearer " + token, from, to).enqueue(callback);
     }
 
     /**
@@ -400,11 +305,12 @@ public class BakalariRepository {
      */
     public void getEvents(String from, Callback<EventsResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getEvents(null, from).enqueue(callback);
+        getApi(baseUrl).getEvents("Bearer " + token, from).enqueue(callback);
     }
 
     /**
@@ -412,10 +318,11 @@ public class BakalariRepository {
      */
     public void getSubstitutions(String from, Callback<SubstitutionsResponse> callback) {
         String baseUrl = getStoredBaseUrl();
-        if (baseUrl == null) {
+        String token = getStoredAccessToken();
+        if (baseUrl == null || token == null) {
             callback.onFailure(null, new IllegalStateException("Not logged in"));
             return;
         }
-        getApi(baseUrl).getSubstitutions(null, from).enqueue(callback);
+        getApi(baseUrl).getSubstitutions("Bearer " + token, from).enqueue(callback);
     }
 }
